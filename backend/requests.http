@@ -1,8 +1,45 @@
-### Health check
-GET http://127.0.0.1:8000/
+### Login (form fields, OAuth2 password flow) -> the token is saved in {{token}}
+POST http://127.0.0.1:8000/api/auth/token
+Content-Type: application/x-www-form-urlencoded
 
-### Register a sensor
+username=admin@altranodes.example&password=ChangeMe-2026!
+
+> {% client.global.set("token", response.body.access_token); %}
+
+### Who am I?
+GET http://127.0.0.1:8000/api/auth/me
+Authorization: Bearer {{token}}
+
+### Without token -> 401
+GET http://127.0.0.1:8000/api/devices/list
+
+### Create an operator and a viewer (admin only)
+POST http://127.0.0.1:8000/api/users
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "email": "giulia.ferri@serrebellini.example",
+  "full_name": "Giulia Ferri",
+  "password": "Agronoma-2026!",
+  "role": "operator"
+}
+
+###
+POST http://127.0.0.1:8000/api/users
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "email": "operaio@serrebellini.example",
+  "full_name": "Operaio serra 3",
+  "password": "Operaio-2026!",
+  "role": "viewer"
+}
+
+### Register a sensor (admin)
 POST http://127.0.0.1:8000/api/devices
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -14,44 +51,26 @@ Content-Type: application/json
 
 > {% client.global.set("device_id", response.body.data.id); %}
 
-### Count and list (the data survive a server restart)
-GET http://127.0.0.1:8000/api/devices/count?site=Sezze
+### Login as viewer -> token saved in {{viewer_token}}
+POST http://127.0.0.1:8000/api/auth/token
+Content-Type: application/x-www-form-urlencoded
 
-###
-GET http://127.0.0.1:8000/api/devices/list?site=Sezze&offset=0&limit=10
+username=operaio@serrebellini.example&password=Operaio-2026!
 
-### Read the desired configuration (note the version)
+> {% client.global.set("viewer_token", response.body.access_token); %}
+
+### The viewer can read...
 GET http://127.0.0.1:8000/api/devices/{{device_id}}/config
+Authorization: Bearer {{viewer_token}}
 
-### Save a new configuration with the version just read -> 200, version + 1
+### ...but cannot change the configuration -> 403
 PUT http://127.0.0.1:8000/api/devices/{{device_id}}/config
+Authorization: Bearer {{viewer_token}}
 Content-Type: application/json
 
 {
   "version": 1,
   "min_temp": 12,
   "max_temp": 28,
-  "sampling_sec": 30
-}
-
-### Same request again (stale version) -> 409 Conflict
-PUT http://127.0.0.1:8000/api/devices/{{device_id}}/config
-Content-Type: application/json
-
-{
-  "version": 1,
-  "min_temp": 14,
-  "max_temp": 26,
-  "sampling_sec": 30
-}
-
-### min_temp >= max_temp -> 422
-PUT http://127.0.0.1:8000/api/devices/{{device_id}}/config
-Content-Type: application/json
-
-{
-  "version": 2,
-  "min_temp": 30,
-  "max_temp": 20,
   "sampling_sec": 30
 }

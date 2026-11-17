@@ -11,6 +11,8 @@ Case study: AltraNodes S.r.l. builds a monitoring platform for the greenhouses o
 | `tw1-end` | Devices router (in-memory), validation, custom errors, `requests.http` |
 | `tw2-start` | Same as tw1-end |
 | `tw2-end` | SQLite persistence with SQLModel, CRUD layer, optimistic locking on device config |
+| `tw3-start` | Same as tw2-end |
+| `tw3-end` | Users, password hashing, JWT login, role-based access (admin / operator / viewer) |
 
 ```bash
 git checkout tw1-start   # start of a milestone
@@ -31,3 +33,5 @@ fastapi dev app.py        # http://127.0.0.1:8000/docs
 
 > The database file `sensorhub.db` is created at startup. When a milestone changes the tables,
 > delete it (`rm backend/sensorhub.db`) and restart: there are no migrations in the course code.
+
+The first admin user is created at startup from `ADMIN_EMAIL` / `ADMIN_PASSWORD` in `.env`.

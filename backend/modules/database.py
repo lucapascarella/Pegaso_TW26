@@ -9,7 +9,7 @@ engine = create_engine(settings.DATABASE_URL, connect_args={"check_same_thread":
 def create_db_and_tables() -> None:
     """Create the tables that do not exist yet (no migrations: see Alembic for production)."""
     # Import the table models so that SQLModel knows them before create_all
-    from modules.models import device  # noqa: F401
+    from modules.models import device, user  # noqa: F401
     SQLModel.metadata.create_all(engine)
 
 

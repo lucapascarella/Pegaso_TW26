@@ -4,7 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, Query, status
 
 from modules.crud import device as crud
-from modules.dependencies import SessionDep
+from modules.dependencies import AdminDep, EditorDep, SessionDep, UserDep
 from modules.models.device import (DeviceClass, DeviceConfig, DeviceShort, ReqConfigUpdate, ReqDeviceCreate, RespCount,
                                    RespDeviceConfig, RespDeviceDetails, RespDeviceList)
 from modules.models.models import ResponseGeneric
@@ -17,7 +17,7 @@ QuerySite = Annotated[str | None, Query(max_length=64)]
 
 
 @router.get("/count")
-def get_device_count(session: SessionDep, device_class: DeviceClass | None = None,
+def get_device_count(session: SessionDep, _: UserDep, device_class: DeviceClass | None = None,
                      site: QuerySite = None, query: QueryText = None) -> RespCount:
     """
     Count devices matching the filters (used by the frontend pagination)
@@ -26,7 +26,7 @@ def get_device_count(session: SessionDep, device_class: DeviceClass | None = Non
 
 
 @router.get("/list")
-def get_device_list(session: SessionDep,
+def get_device_list(session: SessionDep, _: UserDep,
                     offset: Annotated[int, Query(ge=0, le=10000)] = 0,
                     limit: Annotated[int, Query(ge=1, le=100)] = 25,
                     device_class: DeviceClass | None = None,
@@ -41,7 +41,7 @@ def get_device_list(session: SessionDep,
 
 
 @router.get("/{device_id}")
-def get_device_details(device_id: uuid.UUID, session: SessionDep) -> RespDeviceDetails:
+def get_device_details(device_id: uuid.UUID, session: SessionDep, _: UserDep) -> RespDeviceDetails:
     """
     Get a single device by id
     """
@@ -50,25 +50,25 @@ def get_device_details(device_id: uuid.UUID, session: SessionDep) -> RespDeviceD
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
-def add_device(req: ReqDeviceCreate, session: SessionDep) -> RespDeviceDetails:
+def add_device(req: ReqDeviceCreate, session: SessionDep, _: AdminDep) -> RespDeviceDetails:
     """
-    Register a new device (with a default configuration)
+    Register a new device with a default configuration (admin only)
     """
     device = crud.create_device(session, req)
     return RespDeviceDetails(message="Device created.", data=DeviceShort.model_validate(device, from_attributes=True))
 
 
 @router.delete("/{device_id}")
-def delete_device(device_id: uuid.UUID, session: SessionDep) -> ResponseGeneric:
+def delete_device(device_id: uuid.UUID, session: SessionDep, _: AdminDep) -> ResponseGeneric:
     """
-    Remove a device and its configuration
+    Remove a device and its configuration (admin only)
     """
     crud.delete_device(session, device_id)
     return ResponseGeneric(message="Device deleted.")
 
 
 @router.get("/{device_id}/config")
-def get_device_config(device_id: uuid.UUID, session: SessionDep) -> RespDeviceConfig:
+def get_device_config(device_id: uuid.UUID, session: SessionDep, _: UserDep) -> RespDeviceConfig:
     """
     Read the desired configuration (including its version)
     """
@@ -77,9 +77,9 @@ def get_device_config(device_id: uuid.UUID, session: SessionDep) -> RespDeviceCo
 
 
 @router.put("/{device_id}/config")
-def put_device_config(device_id: uuid.UUID, req: ReqConfigUpdate, session: SessionDep) -> RespDeviceConfig:
+def put_device_config(device_id: uuid.UUID, req: ReqConfigUpdate, session: SessionDep, _: EditorDep) -> RespDeviceConfig:
     """
-    Replace the desired configuration. Returns 409 if the version is not the current one.
+    Replace the desired configuration (admin, operator). Returns 409 if the version is not the current one.
     """
     config = crud.update_config(session, device_id, req)
     return RespDeviceConfig(message=f"Configuration saved (version {config.version}).",
