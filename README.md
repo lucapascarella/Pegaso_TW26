@@ -9,6 +9,8 @@ Case study: AltraNodes S.r.l. builds a monitoring platform for the greenhouses o
 |-----|---------|
 | `tw1-start` | Minimal FastAPI app + settings |
 | `tw1-end` | Devices router (in-memory), validation, custom errors, `requests.http` |
+| `tw2-start` | Same as tw1-end |
+| `tw2-end` | SQLite persistence with SQLModel, CRUD layer, optimistic locking on device config |
 
 ```bash
 git checkout tw1-start   # start of a milestone
@@ -26,3 +28,6 @@ pip install -r requirements.txt
 cp .env.example .env
 fastapi dev app.py        # http://127.0.0.1:8000/docs
 ```
+
+> The database file `sensorhub.db` is created at startup. When a milestone changes the tables,
+> delete it (`rm backend/sensorhub.db`) and restart: there are no migrations in the course code.

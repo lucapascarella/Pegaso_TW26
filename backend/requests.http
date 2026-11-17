@@ -12,28 +12,46 @@ Content-Type: application/json
   "site": "Sezze"
 }
 
-### Same serial again -> 409 Conflict
-POST http://127.0.0.1:8000/api/devices
+> {% client.global.set("device_id", response.body.data.id); %}
+
+### Count and list (the data survive a server restart)
+GET http://127.0.0.1:8000/api/devices/count?site=Sezze
+
+###
+GET http://127.0.0.1:8000/api/devices/list?site=Sezze&offset=0&limit=10
+
+### Read the desired configuration (note the version)
+GET http://127.0.0.1:8000/api/devices/{{device_id}}/config
+
+### Save a new configuration with the version just read -> 200, version + 1
+PUT http://127.0.0.1:8000/api/devices/{{device_id}}/config
 Content-Type: application/json
 
 {
-  "serial": "SH-000123",
-  "name": "Duplicate",
-  "device_class": "sensor",
-  "site": "Sezze"
+  "version": 1,
+  "min_temp": 12,
+  "max_temp": 28,
+  "sampling_sec": 30
 }
 
-### Invalid body -> 422 Unprocessable Entity
-POST http://127.0.0.1:8000/api/devices
+### Same request again (stale version) -> 409 Conflict
+PUT http://127.0.0.1:8000/api/devices/{{device_id}}/config
 Content-Type: application/json
 
 {
-  "serial": "123",
-  "device_class": "toaster"
+  "version": 1,
+  "min_temp": 14,
+  "max_temp": 26,
+  "sampling_sec": 30
 }
 
-### List only sensors, first page
-GET http://127.0.0.1:8000/api/devices/list?device_class=sensor&offset=0&limit=10
+### min_temp >= max_temp -> 422
+PUT http://127.0.0.1:8000/api/devices/{{device_id}}/config
+Content-Type: application/json
 
-### Unknown id -> 404 Not Found
-GET http://127.0.0.1:8000/api/devices/7f0c1a8e-0000-4000-8000-000000000000
+{
+  "version": 2,
+  "min_temp": 30,
+  "max_temp": 20,
+  "sampling_sec": 30
+}

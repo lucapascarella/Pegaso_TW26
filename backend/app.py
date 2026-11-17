@@ -1,14 +1,26 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from modules.Exceptions import CustomException
+from modules.database import create_db_and_tables
 from modules.models.models import ResponseGeneric
 from routes import devices
 from utils.settings import settings
 
-app = FastAPI(title=settings.APP_NAME, debug=settings.DEBUG)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Code executed once at startup (before yield) and once at shutdown (after yield)."""
+    create_db_and_tables()
+    yield
+
+
+app = FastAPI(title=settings.APP_NAME, debug=settings.DEBUG, lifespan=lifespan)
 
 # Routers
 app.include_router(devices.router, prefix="/api/devices")
