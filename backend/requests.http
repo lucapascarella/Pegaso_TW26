@@ -1,0 +1,39 @@
+### Health check
+GET http://127.0.0.1:8000/
+
+### Register a sensor
+POST http://127.0.0.1:8000/api/devices
+Content-Type: application/json
+
+{
+  "serial": "SH-000123",
+  "name": "Serra 3 - sonda nord",
+  "device_class": "sensor",
+  "site": "Sezze"
+}
+
+### Same serial again -> 409 Conflict
+POST http://127.0.0.1:8000/api/devices
+Content-Type: application/json
+
+{
+  "serial": "SH-000123",
+  "name": "Duplicate",
+  "device_class": "sensor",
+  "site": "Sezze"
+}
+
+### Invalid body -> 422 Unprocessable Entity
+POST http://127.0.0.1:8000/api/devices
+Content-Type: application/json
+
+{
+  "serial": "123",
+  "device_class": "toaster"
+}
+
+### List only sensors, first page
+GET http://127.0.0.1:8000/api/devices/list?device_class=sensor&offset=0&limit=10
+
+### Unknown id -> 404 Not Found
+GET http://127.0.0.1:8000/api/devices/7f0c1a8e-0000-4000-8000-000000000000
