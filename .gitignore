@@ -1,0 +1,13 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+# Secrets and local data
+.env
+*.db
+# Node
+node_modules/
+dist/
+# IDE
+.idea/workspace.xml
