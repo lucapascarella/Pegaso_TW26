@@ -1,0 +1,10 @@
+# /etc/mosquitto/acl
+# The backend sees every device
+user backend
+topic readwrite sensorhub/#
+
+# Each device logs in with its serial as username (%u) and can touch ONLY its own subtree
+pattern write sensorhub/%u/telemetry
+pattern write sensorhub/%u/status
+pattern write sensorhub/%u/ack
+pattern read  sensorhub/%u/config

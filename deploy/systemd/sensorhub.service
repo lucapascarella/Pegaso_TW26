@@ -1,0 +1,27 @@
+# /etc/systemd/system/sensorhub.service
+[Unit]
+Description=SensorHub API (gunicorn + uvicorn)
+After=network-online.target mosquitto.service
+Wants=network-online.target
+
+[Service]
+User=sensorhub
+Group=www-data
+WorkingDirectory=/opt/sensorhub/backend
+EnvironmentFile=/etc/sensorhub/sensorhub.env
+ExecStart=/opt/sensorhub/backend/.venv/bin/gunicorn -c gunicorn_conf.py app:app
+# /run/sensorhub is created at start and removed at stop
+RuntimeDirectory=sensorhub
+RuntimeDirectoryMode=0750
+# Socket readable/writable by the group (www-data = nginx)
+UMask=0007
+Restart=on-failure
+RestartSec=3
+
+# Basic hardening
+NoNewPrivileges=true
+ProtectSystem=full
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

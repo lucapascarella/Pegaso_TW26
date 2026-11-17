@@ -21,6 +21,8 @@ Case study: AltraNodes S.r.l. builds a monitoring platform for the greenhouses o
 | `tw6-end` | React frontend (Vite): login, device list |
 | `tw7-start` | Same as tw6-end |
 | `tw7-end` | Live dashboard (SSE), config form with 409 handling, CORS settings |
+| `tw8-start` | Same as tw7-end |
+| `tw8-end` | Production deploy: gunicorn, systemd, nginx, Mosquitto TLS + ACL, GitHub Actions CI |
 
 ```bash
 git checkout tw1-start   # start of a milestone
@@ -61,3 +63,7 @@ cd frontend
 npm install
 npm run dev               # http://localhost:5173 (calls to /api are proxied to :8000)
 ```
+
+## Production
+
+See `deploy/README.md`.

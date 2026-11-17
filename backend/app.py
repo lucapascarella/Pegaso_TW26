@@ -45,6 +45,12 @@ app.include_router(devices.router, prefix="/api/devices")
 app.include_router(stream.router, prefix="/api/stream")
 
 
+@app.get("/api/health", response_model=ResponseGeneric, tags=["health"])
+def health():
+    """Liveness check for monitoring (no authentication): the process answers and reports the MQTT link."""
+    return ResponseGeneric(data={"mqtt_connected": bridge.client.is_connected()})
+
+
 @app.exception_handler(RequestValidationError)
 async def request_validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
     """Return validation errors (422) with the common response envelope."""
