@@ -34,3 +34,19 @@ def create_access_token(user_id: uuid.UUID, role: str) -> tuple[str, int]:
 def decode_access_token(token: str) -> dict:
     """Verify signature and expiration. Raises jwt.InvalidTokenError if the token is not valid."""
     return jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
+
+
+STREAM_TOKEN_SEC = 60
+
+
+def create_stream_token(user_id: uuid.UUID) -> str:
+    """
+    Short-lived token used only to open the SSE stream.
+    EventSource cannot send headers, so this token travels in the URL: it must be useless for anything else.
+    """
+    payload = {
+        "sub": str(user_id),
+        "scope": "stream",
+        "exp": datetime.now(timezone.utc) + timedelta(seconds=STREAM_TOKEN_SEC),
+    }
+    return jwt.encode(payload, settings.SECRET_KEY, algorithm=ALGORITHM)

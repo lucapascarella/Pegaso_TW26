@@ -19,6 +19,7 @@ from sqlmodel import Session
 
 from modules.crud import device as crud
 from modules.database import engine
+from modules.events import bus
 from modules.models.device import DeviceConfigSql, DeviceSql
 from utils.settings import settings
 
@@ -77,14 +78,24 @@ class MqttBridge:
             return
 
         if kind == "telemetry":
-            crud.add_reading(session, device, payload)
+            reading = crud.add_reading(session, device, payload)
+            bus.publish("telemetry", {"device_id": str(device.id), "serial": serial, "ts": reading.ts.isoformat(),
+                                      "temperature": reading.temperature, "humidity": reading.humidity})
         elif kind == "status":
             online = bool(payload.get("online"))
             crud.set_online(session, device, online, payload.get("config_version"))
+            self._publish_status(device)
             if online:
                 self.reconcile(session, device)
         elif kind == "ack":
             crud.set_reported_version(session, device, int(payload.get("version", 0)))
+            self._publish_status(device)
+
+    @staticmethod
+    def _publish_status(device: DeviceSql) -> None:
+        """Live event for the dashboards: online flag and applied configuration version."""
+        bus.publish("status", {"device_id": str(device.id), "serial": device.serial, "online": device.online,
+                               "reported_version": device.reported_version})
 
     def reconcile(self, session: Session, device: DeviceSql) -> bool:
         """Desired vs reported: if the device runs an older configuration, send the latest one."""

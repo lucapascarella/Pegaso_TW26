@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, status
@@ -9,10 +10,11 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from MQTT.bridge import bridge
 from modules.Exceptions import CustomException
+from modules.events import bus
 from modules.crud.user import ensure_admin
 from modules.database import create_db_and_tables, engine
 from modules.models.models import ResponseGeneric
-from routes import auth, devices, users
+from routes import auth, devices, stream, users
 from utils.settings import settings
 
 
@@ -22,6 +24,7 @@ async def lifespan(app: FastAPI):
     create_db_and_tables()
     with Session(engine) as session:
         ensure_admin(session)
+    bus.attach_loop(asyncio.get_running_loop())   # live events: MQTT thread -> SSE connections
     bridge.start()      # MQTT network loop in a background thread
     yield
     bridge.stop()
@@ -33,6 +36,7 @@ app = FastAPI(title=settings.APP_NAME, debug=settings.DEBUG, lifespan=lifespan)
 app.include_router(auth.router, prefix="/api/auth")
 app.include_router(users.router, prefix="/api/users")
 app.include_router(devices.router, prefix="/api/devices")
+app.include_router(stream.router, prefix="/api/stream")
 
 
 @app.exception_handler(RequestValidationError)

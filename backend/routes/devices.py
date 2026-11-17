@@ -5,6 +5,7 @@ from fastapi import APIRouter, Query, status
 
 from modules.crud import device as crud
 from MQTT.bridge import bridge
+from modules.events import bus
 from modules.dependencies import AdminDep, EditorDep, SessionDep, UserDep
 from modules.models.device import (DeviceClass, DeviceConfig, Reading, ReqConfigUpdate, ReqDeviceCreate, RespCount,
                                    RespDeviceConfig, RespDeviceDetails, RespDeviceList, RespReadingList)
@@ -86,6 +87,7 @@ def put_device_config(device_id: uuid.UUID, req: ReqConfigUpdate, session: Sessi
     device = crud.get_device(session, device_id)
     # Retained + QoS 1: an offline device receives it when it reconnects
     bridge.publish_config(device.serial, config)
+    bus.publish("config", {"device_id": str(device_id), "desired_version": config.version})
     return RespDeviceConfig(message=f"Configuration saved (version {config.version}).",
                             data=DeviceConfig.model_validate(config, from_attributes=True))
 

@@ -94,3 +94,12 @@ Content-Type: application/json
 ### Device list: online, reported_version, desired_version, in_sync
 GET http://127.0.0.1:8000/api/devices/list
 Authorization: Bearer {{token}}
+
+### SSE: get a short-lived stream token, then open the stream (curl -N "http://127.0.0.1:8000/api/stream?token=...")
+POST http://127.0.0.1:8000/api/stream/token
+Authorization: Bearer {{token}}
+
+> {% client.global.set("stream_token", response.body.stream_token); %}
+
+###
+GET http://127.0.0.1:8000/api/stream?token={{stream_token}}

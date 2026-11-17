@@ -26,6 +26,8 @@ def get_current_user(session: SessionDep, token: Annotated[str, Depends(oauth2_s
         user_id = uuid.UUID(payload["sub"])
     except (jwt.InvalidTokenError, KeyError, ValueError):
         raise unauthorized
+    if payload.get("scope") == "stream":
+        raise unauthorized  # a stream token (visible in URLs and logs) must not open the API
 
     user = session.get(UserSql, user_id)
     if user is None or user.disabled:
@@ -47,3 +49,19 @@ def require_role(*roles: UserRole):
 
 AdminDep = Annotated[UserSql, Depends(require_role(UserRole.Admin))]
 EditorDep = Annotated[UserSql, Depends(require_role(UserRole.Admin, UserRole.Operator))]
+
+
+def get_stream_user(session: Session, token: str) -> UserSql:
+    """Validate a stream token (scope=stream) passed in the query string."""
+    unauthorized = CustomException("Invalid or expired stream token.", None, status.HTTP_401_UNAUTHORIZED)
+    try:
+        payload = decode_access_token(token)
+        user_id = uuid.UUID(payload["sub"])
+    except (jwt.InvalidTokenError, KeyError, ValueError):
+        raise unauthorized
+    if payload.get("scope") != "stream":
+        raise unauthorized
+    user = session.get(UserSql, user_id)
+    if user is None or user.disabled:
+        raise unauthorized
+    return user

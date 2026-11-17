@@ -15,6 +15,8 @@ Case study: AltraNodes S.r.l. builds a monitoring platform for the greenhouses o
 | `tw3-end` | Users, password hashing, JWT login, role-based access (admin / operator / viewer) |
 | `tw4-start` | Same as tw3-end |
 | `tw4-end` | MQTT bridge (paho-mqtt), telemetry storage, online/offline status, config resend, device simulator |
+| `tw5-start` | Same as tw4-end |
+| `tw5-end` | Server-Sent Events: live telemetry and status to the browser |
 
 ```bash
 git checkout tw1-start   # start of a milestone
