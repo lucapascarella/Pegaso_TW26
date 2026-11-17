@@ -74,3 +74,23 @@ Content-Type: application/json
   "max_temp": 28,
   "sampling_sec": 30
 }
+
+### Latest telemetry samples (start simulator/simulator.py SH-000123 first)
+GET http://127.0.0.1:8000/api/devices/{{device_id}}/readings?limit=10
+Authorization: Bearer {{token}}
+
+### Change the configuration while the device is offline, then restart the simulator
+PUT http://127.0.0.1:8000/api/devices/{{device_id}}/config
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "version": 1,
+  "min_temp": 15,
+  "max_temp": 26,
+  "sampling_sec": 5
+}
+
+### Device list: online, reported_version, desired_version, in_sync
+GET http://127.0.0.1:8000/api/devices/list
+Authorization: Bearer {{token}}

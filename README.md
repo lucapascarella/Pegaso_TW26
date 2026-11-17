@@ -13,6 +13,8 @@ Case study: AltraNodes S.r.l. builds a monitoring platform for the greenhouses o
 | `tw2-end` | SQLite persistence with SQLModel, CRUD layer, optimistic locking on device config |
 | `tw3-start` | Same as tw2-end |
 | `tw3-end` | Users, password hashing, JWT login, role-based access (admin / operator / viewer) |
+| `tw4-start` | Same as tw3-end |
+| `tw4-end` | MQTT bridge (paho-mqtt), telemetry storage, online/offline status, config resend, device simulator |
 
 ```bash
 git checkout tw1-start   # start of a milestone
@@ -35,3 +37,13 @@ fastapi dev app.py        # http://127.0.0.1:8000/docs
 > delete it (`rm backend/sensorhub.db`) and restart: there are no migrations in the course code.
 
 The first admin user is created at startup from `ADMIN_EMAIL` / `ADMIN_PASSWORD` in `.env`.
+
+## MQTT broker and simulator
+
+```bash
+sudo apt install -y mosquitto mosquitto-clients
+mosquitto -c deploy/mosquitto/dev.conf -v          # terminal 1: broker on :1883
+cd simulator && python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+python simulator.py SH-000123                       # terminal 2: one simulated device
+```

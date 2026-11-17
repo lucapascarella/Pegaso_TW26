@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timezone
 from enum import Enum
 
-from pydantic import BaseModel, Field as PydField, model_validator
+from pydantic import BaseModel, Field as PydField, computed_field, model_validator
 from sqlmodel import Field, SQLModel
 
 from modules.models.models import ResponseGeneric
@@ -28,6 +28,11 @@ class DeviceSql(SQLModel, table=True):
     site: str = Field(max_length=64, index=True)
     created_at: datetime = Field(default_factory=utc_now)
 
+    # Reported state (updated by the MQTT bridge)
+    online: bool = False
+    last_seen: datetime | None = None
+    reported_version: int = 0        # configuration version the device has applied
+
 
 class DeviceConfigSql(SQLModel, table=True):
     """Desired configuration of a device. 'version' grows at every change (optimistic locking)."""
@@ -37,8 +42,19 @@ class DeviceConfigSql(SQLModel, table=True):
     version: int = 1
     min_temp: float = 10.0
     max_temp: float = 30.0
-    sampling_sec: int = 60
+    sampling_sec: int = 10
     updated_at: datetime = Field(default_factory=utc_now)
+
+
+class ReadingSql(SQLModel, table=True):
+    """One telemetry sample received from a device."""
+    __tablename__ = "reading"
+
+    id: int | None = Field(default=None, primary_key=True)
+    device_id: uuid.UUID = Field(foreign_key="device.id", index=True)
+    ts: datetime = Field(default_factory=utc_now, index=True)   # server time: device clocks may be wrong
+    temperature: float | None = None
+    humidity: float | None = None
 
 
 # ---------- Requests ----------
@@ -72,6 +88,15 @@ class DeviceShort(BaseModel):
     device_class: DeviceClass
     site: str
     created_at: datetime
+    online: bool = False
+    last_seen: datetime | None = None
+    reported_version: int = 0
+    desired_version: int | None = None   # from the configuration table
+
+    @computed_field
+    @property
+    def in_sync(self) -> bool:
+        return self.desired_version is not None and self.reported_version >= self.desired_version
 
 
 class DeviceConfig(BaseModel):
@@ -92,6 +117,16 @@ class RespDeviceDetails(ResponseGeneric):
 
 class RespDeviceConfig(ResponseGeneric):
     data: DeviceConfig | None = None
+
+
+class Reading(BaseModel):
+    ts: datetime
+    temperature: float | None
+    humidity: float | None
+
+
+class RespReadingList(ResponseGeneric):
+    data: list[Reading] = []
 
 
 class RespCount(ResponseGeneric):

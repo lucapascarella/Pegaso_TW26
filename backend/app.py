@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 from sqlmodel import Session
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from MQTT.bridge import bridge
 from modules.Exceptions import CustomException
 from modules.crud.user import ensure_admin
 from modules.database import create_db_and_tables, engine
@@ -21,7 +22,9 @@ async def lifespan(app: FastAPI):
     create_db_and_tables()
     with Session(engine) as session:
         ensure_admin(session)
+    bridge.start()      # MQTT network loop in a background thread
     yield
+    bridge.stop()
 
 
 app = FastAPI(title=settings.APP_NAME, debug=settings.DEBUG, lifespan=lifespan)

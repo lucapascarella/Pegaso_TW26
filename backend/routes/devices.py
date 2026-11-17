@@ -4,9 +4,10 @@ from typing import Annotated
 from fastapi import APIRouter, Query, status
 
 from modules.crud import device as crud
+from MQTT.bridge import bridge
 from modules.dependencies import AdminDep, EditorDep, SessionDep, UserDep
-from modules.models.device import (DeviceClass, DeviceConfig, DeviceShort, ReqConfigUpdate, ReqDeviceCreate, RespCount,
-                                   RespDeviceConfig, RespDeviceDetails, RespDeviceList)
+from modules.models.device import (DeviceClass, DeviceConfig, Reading, ReqConfigUpdate, ReqDeviceCreate, RespCount,
+                                   RespDeviceConfig, RespDeviceDetails, RespDeviceList, RespReadingList)
 from modules.models.models import ResponseGeneric
 
 router = APIRouter(tags=["Device"])
@@ -36,8 +37,7 @@ def get_device_list(session: SessionDep, _: UserDep,
     List devices with pagination and optional filters
     """
     devices = crud.list_devices(session, offset, limit, device_class, site, query)
-    return RespDeviceList(message=f"Retrieved {len(devices)} device(s).",
-                          data=[DeviceShort.model_validate(d, from_attributes=True) for d in devices])
+    return RespDeviceList(message=f"Retrieved {len(devices)} device(s).", data=devices)
 
 
 @router.get("/{device_id}")
@@ -46,7 +46,8 @@ def get_device_details(device_id: uuid.UUID, session: SessionDep, _: UserDep) ->
     Get a single device by id
     """
     device = crud.get_device(session, device_id)
-    return RespDeviceDetails(message="Device details.", data=DeviceShort.model_validate(device, from_attributes=True))
+    config = crud.get_config(session, device_id)
+    return RespDeviceDetails(message="Device details.", data=crud.to_short(device, config.version))
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
@@ -55,7 +56,7 @@ def add_device(req: ReqDeviceCreate, session: SessionDep, _: AdminDep) -> RespDe
     Register a new device with a default configuration (admin only)
     """
     device = crud.create_device(session, req)
-    return RespDeviceDetails(message="Device created.", data=DeviceShort.model_validate(device, from_attributes=True))
+    return RespDeviceDetails(message="Device created.", data=crud.to_short(device, 1))
 
 
 @router.delete("/{device_id}")
@@ -82,5 +83,18 @@ def put_device_config(device_id: uuid.UUID, req: ReqConfigUpdate, session: Sessi
     Replace the desired configuration (admin, operator). Returns 409 if the version is not the current one.
     """
     config = crud.update_config(session, device_id, req)
+    device = crud.get_device(session, device_id)
+    # Retained + QoS 1: an offline device receives it when it reconnects
+    bridge.publish_config(device.serial, config)
     return RespDeviceConfig(message=f"Configuration saved (version {config.version}).",
                             data=DeviceConfig.model_validate(config, from_attributes=True))
+
+
+@router.get("/{device_id}/readings")
+def get_device_readings(device_id: uuid.UUID, session: SessionDep, _: UserDep,
+                        limit: Annotated[int, Query(ge=1, le=1000)] = 100) -> RespReadingList:
+    """
+    Latest telemetry samples, newest first
+    """
+    readings = crud.list_readings(session, device_id, limit)
+    return RespReadingList(data=[Reading.model_validate(r, from_attributes=True) for r in readings])

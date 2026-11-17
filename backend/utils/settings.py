@@ -15,6 +15,14 @@ class Settings(BaseSettings):
     ADMIN_EMAIL: str = "admin@altranodes.example"
     ADMIN_PASSWORD: str = "ChangeMe-2026!"
 
+    # MQTT broker
+    MQTT_HOST: str = "localhost"
+    MQTT_PORT: int = 1883
+    MQTT_USERNAME: str = ""
+    MQTT_PASSWORD: str = ""
+    MQTT_TLS: bool = False
+    MQTT_TOPIC_ROOT: str = "sensorhub"
+
     model_config = SettingsConfigDict(env_file=".env")
 
 

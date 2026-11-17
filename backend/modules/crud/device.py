@@ -4,7 +4,8 @@ from fastapi import status
 from sqlmodel import Session, func, select
 
 from modules.Exceptions import CustomException
-from modules.models.device import DeviceClass, DeviceConfigSql, DeviceSql, ReqConfigUpdate, ReqDeviceCreate, utc_now
+from modules.models.device import (DeviceClass, DeviceConfigSql, DeviceShort, DeviceSql, ReadingSql, ReqConfigUpdate,
+                                   ReqDeviceCreate, utc_now)
 
 
 def _filtered(stmt, device_class: DeviceClass | None, site: str | None, query: str | None):
@@ -23,10 +24,18 @@ def count_devices(session: Session, device_class=None, site=None, query=None) ->
     return session.exec(stmt).one()
 
 
-def list_devices(session: Session, offset: int, limit: int, device_class=None, site=None, query=None) -> list[DeviceSql]:
-    stmt = _filtered(select(DeviceSql), device_class, site, query)
+def list_devices(session: Session, offset: int, limit: int, device_class=None, site=None, query=None) -> list[DeviceShort]:
+    """Devices with the desired configuration version, to show which ones are out of sync."""
+    stmt = select(DeviceSql, DeviceConfigSql.version).join(DeviceConfigSql, DeviceConfigSql.device_id == DeviceSql.id)
+    stmt = _filtered(stmt, device_class, site, query)
     stmt = stmt.order_by(DeviceSql.site, DeviceSql.name).offset(offset).limit(limit)
-    return list(session.exec(stmt).all())
+    return [to_short(device, version) for device, version in session.exec(stmt).all()]
+
+
+def to_short(device: DeviceSql, desired_version: int | None = None) -> DeviceShort:
+    short = DeviceShort.model_validate(device, from_attributes=True)
+    short.desired_version = desired_version
+    return short
 
 
 def get_device(session: Session, device_id: uuid.UUID) -> DeviceSql:
@@ -34,6 +43,10 @@ def get_device(session: Session, device_id: uuid.UUID) -> DeviceSql:
     if device is None:
         raise CustomException(f"Device {device_id} not found.", None, status.HTTP_404_NOT_FOUND)
     return device
+
+
+def get_device_by_serial(session: Session, serial: str) -> DeviceSql | None:
+    return session.exec(select(DeviceSql).where(DeviceSql.serial == serial)).first()
 
 
 def create_device(session: Session, req: ReqDeviceCreate) -> DeviceSql:
@@ -56,6 +69,8 @@ def delete_device(session: Session, device_id: uuid.UUID) -> None:
     config = session.get(DeviceConfigSql, device_id)
     if config:
         session.delete(config)
+    for reading in session.exec(select(ReadingSql).where(ReadingSql.device_id == device_id)).all():
+        session.delete(reading)
     session.delete(device)
     session.commit()
 
@@ -84,3 +99,35 @@ def update_config(session: Session, device_id: uuid.UUID, req: ReqConfigUpdate) 
     session.commit()
     session.refresh(config)
     return config
+
+
+# ---------- Reported state (called by the MQTT bridge) ----------
+def add_reading(session: Session, device: DeviceSql, payload: dict) -> ReadingSql:
+    reading = ReadingSql(device_id=device.id, temperature=payload.get("temperature"), humidity=payload.get("humidity"))
+    device.last_seen = reading.ts
+    device.online = True
+    session.add(reading)
+    session.add(device)
+    session.commit()
+    return reading
+
+
+def set_online(session: Session, device: DeviceSql, online: bool, config_version: int | None = None) -> None:
+    device.online = online
+    device.last_seen = utc_now()
+    if config_version is not None:
+        device.reported_version = config_version
+    session.add(device)
+    session.commit()
+
+
+def set_reported_version(session: Session, device: DeviceSql, version: int) -> None:
+    device.reported_version = max(device.reported_version, version)
+    session.add(device)
+    session.commit()
+
+
+def list_readings(session: Session, device_id: uuid.UUID, limit: int) -> list[ReadingSql]:
+    get_device(session, device_id)
+    stmt = select(ReadingSql).where(ReadingSql.device_id == device_id).order_by(ReadingSql.ts.desc()).limit(limit)
+    return list(session.exec(stmt).all())

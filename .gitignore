@@ -11,3 +11,5 @@ node_modules/
 dist/
 # IDE
 .idea/workspace.xml
+# Simulator state (the "flash memory" of the simulated devices)
+simulator/state_*.json
