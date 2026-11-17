@@ -106,6 +106,8 @@ def add_reading(session: Session, device: DeviceSql, payload: dict) -> ReadingSq
     reading = ReadingSql(device_id=device.id, temperature=payload.get("temperature"), humidity=payload.get("humidity"))
     device.last_seen = reading.ts
     device.online = True
+    device.last_temperature = reading.temperature
+    device.last_humidity = reading.humidity
     session.add(reading)
     session.add(device)
     session.commit()

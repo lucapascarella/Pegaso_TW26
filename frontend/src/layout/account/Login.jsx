@@ -14,7 +14,7 @@ export function Login() {
     const [loading, setLoading] = useState(false)
 
     if (loggedIn) {
-        return <Navigate to="/devices" replace/>
+        return <Navigate to="/dashboard" replace/>
     }
 
     function handleSubmit(event) {

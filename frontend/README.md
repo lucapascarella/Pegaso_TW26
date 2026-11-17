@@ -14,9 +14,9 @@ Structure (one folder per area, one hooks file per resource):
 src/
 ├── _services/fetchWrapper.js   # fetch + token + {success, message, data} envelope
 ├── context/AuthContext.jsx     # token, current user, login/logout
-├── hooks/                      # generic hooks (useLocalStorage, …)
+├── hooks/                      # generic hooks (useLocalStorage, useSSE)
 └── layout/
     ├── Header.jsx, RequireAuth.jsx
     ├── account/Login.jsx
-    └── device/useDevice.js, Devices.jsx
+    └── device/useDevice.js, Devices.jsx, Dashboard.jsx, DeviceConfig.jsx
 ```

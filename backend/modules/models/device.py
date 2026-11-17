@@ -32,6 +32,8 @@ class DeviceSql(SQLModel, table=True):
     online: bool = False
     last_seen: datetime | None = None
     reported_version: int = 0        # configuration version the device has applied
+    last_temperature: float | None = None   # latest values, copied here for the dashboard
+    last_humidity: float | None = None
 
 
 class DeviceConfigSql(SQLModel, table=True):
@@ -91,6 +93,8 @@ class DeviceShort(BaseModel):
     online: bool = False
     last_seen: datetime | None = None
     reported_version: int = 0
+    last_temperature: float | None = None
+    last_humidity: float | None = None
     desired_version: int | None = None   # from the configuration table
 
     @computed_field

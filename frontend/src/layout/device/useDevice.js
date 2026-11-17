@@ -7,6 +7,8 @@ const api = "/api/devices"
 
 const endpointList = (offset, limit) => `${api}/list?offset=${offset}&limit=${limit}`
 const endpointCount = () => `${api}/count`
+const endpointDetails = (id) => `${api}/${id}`
+const endpointConfig = (id) => `${api}/${id}/config`
 
 /**
  * Paginated device list. Every change of page triggers a new request;
@@ -53,4 +55,46 @@ export function useDeviceCount() {
     }, [token])
 
     return count
+}
+
+/**
+ * Device details and its desired configuration, with the save action.
+ * A 409 means that someone else saved first: the caller shows a message and reloads.
+ */
+export function useDeviceConfig(deviceId) {
+    const {token} = useAuth()
+    const [device, setDevice] = useState(null)
+    const [config, setConfig] = useState(null)
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState(null)
+    const [reload, setReload] = useState(0)
+
+    useEffect(() => {
+        const controller = new AbortController()
+        setLoading(true)
+        setError(null)
+
+        Promise.all([
+            fetchWrapper.get(endpointDetails(deviceId), token, controller.signal),
+            fetchWrapper.get(endpointConfig(deviceId), token, controller.signal),
+        ])
+            .then(([d, c]) => {
+                setDevice(d.data)
+                setConfig(c.data)
+            })
+            .catch(err => err.name !== "AbortError" && setError(err.message))
+            .finally(() => setLoading(false))
+
+        return () => controller.abort()
+    }, [token, deviceId, reload])
+
+    function saveConfig(values) {
+        return fetchWrapper.put(endpointConfig(deviceId), values, token)
+            .then(resp => {
+                setConfig(resp.data)
+                return resp.message
+            })
+    }
+
+    return {device, config, loading, error, saveConfig, reload: () => setReload(r => r + 1)}
 }

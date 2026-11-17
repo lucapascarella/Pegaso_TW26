@@ -19,6 +19,8 @@ Case study: AltraNodes S.r.l. builds a monitoring platform for the greenhouses o
 | `tw5-end` | Server-Sent Events: live telemetry and status to the browser |
 | `tw6-start` | Same as tw5-end |
 | `tw6-end` | React frontend (Vite): login, device list |
+| `tw7-start` | Same as tw6-end |
+| `tw7-end` | Live dashboard (SSE), config form with 409 handling, CORS settings |
 
 ```bash
 git checkout tw1-start   # start of a milestone

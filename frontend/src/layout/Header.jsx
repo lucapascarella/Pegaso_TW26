@@ -13,6 +13,7 @@ export function Header() {
                 {loggedIn && (
                     <>
                         <Nav className="me-auto">
+                            <Nav.Link as={Link} to="/dashboard">Dashboard</Nav.Link>
                             <Nav.Link as={Link} to="/devices">Device</Nav.Link>
                         </Nav>
                         <Navbar.Text className="me-3">

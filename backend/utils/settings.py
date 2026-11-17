@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     MQTT_TLS: bool = False
     MQTT_TOPIC_ROOT: str = "sensorhub"
 
+    # Origins allowed to call the API from another domain (CORS). Empty: same origin only.
+    # Example in .env: CORS_ORIGINS=["http://localhost:5173"]
+    CORS_ORIGINS: list[str] = []
+
     model_config = SettingsConfigDict(env_file=".env")
 
 
