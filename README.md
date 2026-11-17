@@ -17,6 +17,8 @@ Case study: AltraNodes S.r.l. builds a monitoring platform for the greenhouses o
 | `tw4-end` | MQTT bridge (paho-mqtt), telemetry storage, online/offline status, config resend, device simulator |
 | `tw5-start` | Same as tw4-end |
 | `tw5-end` | Server-Sent Events: live telemetry and status to the browser |
+| `tw6-start` | Same as tw5-end |
+| `tw6-end` | React frontend (Vite): login, device list |
 
 ```bash
 git checkout tw1-start   # start of a milestone
@@ -48,4 +50,12 @@ mosquitto -c deploy/mosquitto/dev.conf -v          # terminal 1: broker on :1883
 cd simulator && python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 python simulator.py SH-000123                       # terminal 2: one simulated device
+```
+
+## Frontend setup
+
+```bash
+cd frontend
+npm install
+npm run dev               # http://localhost:5173 (calls to /api are proxied to :8000)
 ```
